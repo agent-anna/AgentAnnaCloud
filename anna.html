@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Agent Anna Console</title>
+
+<style>
+body{
+background:#050816;
+color:#00d9ff;
+font-family:Arial;
+padding:20px;
+}
+
+.panel{
+border:1px solid #00d9ff;
+padding:15px;
+margin-bottom:15px;
+border-radius:12px;
+background:#07142a;
+}
+
+textarea{
+width:100%;
+height:120px;
+background:#000;
+color:#0ff;
+}
+
+button{
+padding:10px 20px;
+margin-top:10px;
+}
+
+pre{
+white-space:pre-wrap;
+}
+</style>
+</head>
+<body>
+
+<h1>Agent Anna Console</h1>
+
+<div class="panel">
+<h2>Brain</h2>
+<pre id="brain"></pre>
+</div>
+
+<div class="panel">
+<h2>Tasks</h2>
+<pre id="tasks"></pre>
+</div>
+
+<div class="panel">
+<h2>Links</h2>
+<pre id="links"></pre>
+</div>
+
+<div class="panel">
+<h2>Prompt</h2>
+
+<textarea id="prompt"></textarea>
+
+<button onclick="ask()">
+Send
+</button>
+
+<div id="response"></div>
+
+</div>
+
+<script>
+
+async function load(){
+
+const brain =
+await fetch("brain.json")
+.then(r=>r.json());
+
+const tasks =
+await fetch("tasks.json")
+.then(r=>r.json());
+
+const links =
+await fetch("links.json")
+.then(r=>r.json());
+
+document
+.getElementById("brain")
+.textContent =
+JSON.stringify(brain,null,2);
+
+document
+.getElementById("tasks")
+.textContent =
+JSON.stringify(tasks,null,2);
+
+document
+.getElementById("links")
+.textContent =
+JSON.stringify(links,null,2);
+
+}
+
+function ask(){
+
+let p =
+document
+.getElementById("prompt")
+.value;
+
+document
+.getElementById("response")
+.innerHTML =
+"<hr>Prompt:<br><br>"
++
+p;
+
+}
+
+load();
+
+</script>
+
+</body>
+</html>

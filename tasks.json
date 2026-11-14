@@ -1,6 +1,10 @@
 [
   {
-    "task":"Enable GitHub Pages",
+    "task":"GitHub Pages Live",
+    "status":"done"
+  },
+  {
+    "task":"Create Agent Anna Console",
     "status":"active"
   },
   {
@@ -8,7 +12,7 @@
     "status":"todo"
   },
   {
-    "task":"Connect Dahl AI",
+    "task":"Connect Dahl API",
     "status":"todo"
   }
 ]

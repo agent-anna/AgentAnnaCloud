@@ -20,7 +20,8 @@ button:hover{opacity:0.85;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 button.danger{background:#ef4444;color:#fff;}
 button.mic-btn{background:#10b981;color:#000;}
-button.mic-btn.active{background:#ef4444;color:#fff;}
+button.mic-btn.active{background:#ef4444;color:#fff;animation:pulse 1s infinite;}
+@keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
 .status{color:#00ff88;font-weight:bold;font-size:13px;}
 #response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;font-size:14px;border:1px solid rgba(0,217,255,0.2);}
 </style>
@@ -50,7 +51,7 @@ button.mic-btn.active{background:#ef4444;color:#fff;}
 
   <div class="console-panel">
     <h2>Agent Console</h2>
-    <textarea id="prompt" placeholder="Type prompt or use mic..."></textarea>
+    <textarea id="prompt" placeholder="Type prompt or tap mic to speak..."></textarea>
     
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button onclick="ask()">SEND</button>
@@ -104,14 +105,16 @@ function speakText(text) {
 function toggleMic() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        document.getElementById("response").textContent = "Speech recognition not supported in this browser. Please use Google Chrome.";
+        document.getElementById("response").textContent = "Speech recognition is not supported in this browser. Please use Google Chrome.";
         return;
     }
 
     const micBtn = document.getElementById("micBtn");
 
     if (isListening) {
-        if (recognition) { try { recognition.stop(); } catch(e){} }
+        if (recognition) {
+            try { recognition.stop(); } catch (e) {}
+        }
         stopMicUI();
         return;
     }
@@ -120,17 +123,20 @@ function toggleMic() {
         recognition = new SpeechRecognition();
         recognition.lang = "en-US";
         recognition.continuous = false;
-        recognition.interimResults = false;
+        recognition.interimResults = true;
 
         recognition.onstart = () => {
             isListening = true;
-            micBtn.textContent = "⏹️ LISTENING (CLICK TO STOP)";
+            micBtn.textContent = "🔴 LISTENING (SPEAK NOW)";
             micBtn.classList.add("active");
-            document.getElementById("response").textContent = "Microphone active. Speak now...";
+            document.getElementById("response").textContent = "Listening... Speak into your microphone.";
         };
 
         recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
+            let transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                transcript += event.results[i][0].transcript;
+            }
             document.getElementById("prompt").value = transcript;
             document.getElementById("response").textContent = "Heard: " + transcript;
         };
@@ -164,7 +170,10 @@ function stopMicUI() {
 
 function executeStfuProtocol() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    if (isListening) toggleMic();
+    if (isListening && recognition) {
+        try { recognition.stop(); } catch (e) {}
+    }
+    stopMicUI();
 }
 
 function toggleVoice() {
@@ -186,7 +195,6 @@ async function ask() {
     const resDiv = document.getElementById("response");
     if (!prompt) return;
 
-    if (isListening) toggleMic();
     executeStfuProtocol();
     resDiv.textContent = "Anna is thinking...";
 

@@ -13,6 +13,9 @@ h1{margin:0;}
 textarea{width:100%;height:105px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:10px;box-sizing:border-box;font-family:inherit;font-size:15px;outline:none;}
 button{margin-top:10px;padding:10px 20px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
+button.mic-btn{background:#10b981;color:#000;}
+button.mic-btn.listening{background:#ef4444;color:#fff;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
 .status{color:#00ff88;font-weight:bold;}
 #response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;line-height:1.55;}
 </style>
@@ -33,8 +36,8 @@ button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
     <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)"></textarea>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button onclick="ask()">SEND</button>
-      <button class="secondary" onclick="replayVoice()">REPLAY VOICE</button>
-      <button class="secondary" onclick="stopVoice()">STOP VOICE</button>
+      <button id="voiceToggleBtn" class="secondary" onclick="toggleVoice()">🔊 VOICE TOGGLE</button>
+      <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎙️ TAP TO SPEAK</button>
     </div>
     <div id="response">Ready.</div>
   </div>
@@ -43,7 +46,9 @@ button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 <script>
 let selectedVoice = null;
 let lastReply = "";
-let audioUnlocked = false;
+let isSpeaking = false;
+let recognition = null;
+let isListening = false;
 
 function initVoice() {
   if (!("speechSynthesis" in window)) return;
@@ -70,20 +75,10 @@ if ("speechSynthesis" in window) {
   initVoice();
 }
 
-function unlockAudio() {
-  if (audioUnlocked || !("speechSynthesis" in window)) return;
-  audioUnlocked = true;
-  // Silent tap to unlock browser audio policy
-  const dummy = new SpeechSynthesisUtterance("");
-  dummy.volume = 0;
-  window.speechSynthesis.speak(dummy);
-}
-
 function speak(text) {
   if (!("speechSynthesis" in window) || !text) return;
   window.speechSynthesis.cancel();
   initVoice();
-  unlockAudio();
 
   const clean = text
     .replace(/```[\s\S]*?```/g, "Code provided on screen.")
@@ -95,18 +90,93 @@ function speak(text) {
   if (selectedVoice) utterance.voice = selectedVoice;
   utterance.rate = 1.02;
   utterance.pitch = 1.04;
+
+  utterance.onstart = () => { isSpeaking = true; updateVoiceButton(); };
+  utterance.onend = () => { isSpeaking = false; updateVoiceButton(); };
+  utterance.onerror = () => { isSpeaking = false; updateVoiceButton(); };
+
   window.speechSynthesis.speak(utterance);
 }
 
 function stopVoice() {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+  isSpeaking = false;
+  updateVoiceButton();
 }
 
-function replayVoice() {
-  if (lastReply) speak(lastReply);
+function toggleVoice() {
+  if (isSpeaking) {
+    stopVoice();
+  } else if (lastReply) {
+    speak(lastReply);
+  } else {
+    speak("Voice toggle ready. Send a message to hear my reply.");
+  }
 }
 
-// Bulletproof Enter key listener bound directly via JS
+function updateVoiceButton() {
+  const btn = document.getElementById("voiceToggleBtn");
+  if (isSpeaking) {
+    btn.textContent = "🔇 STOP VOICE";
+    btn.style.borderColor = "#ef4444";
+    btn.style.color = "#ef4444";
+  } else {
+    btn.textContent = "🔊 VOICE TOGGLE";
+    btn.style.borderColor = "#00d9ff";
+    btn.style.color = "#00d9ff";
+  }
+}
+
+// Tap-to-Speak Microphone Setup (Speech Recognition)
+function toggleMic() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Speech recognition is not supported in this browser. Try Chrome or Edge.");
+    return;
+  }
+
+  if (isListening) {
+    if (recognition) recognition.stop();
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isListening = true;
+    const micBtn = document.getElementById("micBtn");
+    micBtn.textContent = "🔴 LISTENING...";
+    micBtn.classList.add("listening");
+  };
+
+  recognition.onresult = (event) => {
+    const transcript = event.results[0][0].transcript;
+    document.getElementById("prompt").value = transcript;
+    ask();
+  };
+
+  recognition.onerror = (event) => {
+    console.warn("Speech recognition error:", event.error);
+    stopMicUI();
+  };
+
+  recognition.onend = () => {
+    stopMicUI();
+  };
+
+  recognition.start();
+}
+
+function stopMicUI() {
+  isListening = false;
+  const micBtn = document.getElementById("micBtn");
+  micBtn.textContent = "🎙️ TAP TO SPEAK";
+  micBtn.classList.remove("listening");
+}
+
 document.getElementById("prompt").addEventListener("keydown", function(event) {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
@@ -115,7 +185,6 @@ document.getElementById("prompt").addEventListener("keydown", function(event) {
 });
 
 async function ask() {
-  unlockAudio();
   const promptInput = document.getElementById("prompt");
   const prompt = promptInput.value.trim();
   const resDiv = document.getElementById("response");

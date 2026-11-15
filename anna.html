@@ -2,76 +2,169 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Agent Anna Console</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Anna Dashboard</title>
 
 <style>
+
 body{
-background:#050816;
-color:#00d9ff;
-font-family:Arial;
-padding:20px;
+    margin:0;
+    background:#050816;
+    color:#00d9ff;
+    font-family:Segoe UI,Arial,sans-serif;
+}
+
+header{
+    padding:20px;
+    border-bottom:1px solid rgba(0,217,255,.3);
+    background:#07142a;
+}
+
+h1{
+    margin:0;
+}
+
+.container{
+    padding:20px;
+}
+
+.grid{
+    display:grid;
+    gap:20px;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
 }
 
 .panel{
-border:1px solid #00d9ff;
-padding:15px;
-margin-bottom:15px;
-border-radius:12px;
-background:#07142a;
+    border:1px solid #00d9ff;
+    border-radius:16px;
+    background:#07142a;
+    padding:16px;
+}
+
+.panel h2{
+    margin-top:0;
 }
 
 textarea{
-width:100%;
-height:120px;
-background:#000;
-color:#0ff;
+    width:100%;
+    height:120px;
+    background:#000;
+    color:#00ffff;
+    border:1px solid #00d9ff;
+    border-radius:8px;
+    padding:10px;
 }
 
 button{
-padding:10px 20px;
-margin-top:10px;
+    margin-top:10px;
+    padding:10px 20px;
+    cursor:pointer;
+    background:#00d9ff;
+    color:#000;
+    border:none;
+    border-radius:8px;
+    font-weight:bold;
 }
 
-pre{
-white-space:pre-wrap;
+a{
+    color:#00ffff;
+    text-decoration:none;
 }
+
+a:hover{
+    text-decoration:underline;
+}
+
+.item{
+    margin-bottom:8px;
+}
+
+.status{
+    color:#00ff88;
+    font-weight:bold;
+}
+
+#response{
+    margin-top:15px;
+    padding:10px;
+    border-radius:8px;
+    background:#000;
+    min-height:50px;
+}
+
 </style>
+
 </head>
 <body>
 
-<h1>Agent Anna Console</h1>
+<header>
+
+<h1>Agent Anna Dashboard</h1>
+
+<div class="status">
+ONLINE
+</div>
+
+</header>
+
+<div class="container">
+
+<div class="grid">
 
 <div class="panel">
+
 <h2>Brain</h2>
-<pre id="brain"></pre>
+
+<div id="brain">
+Loading...
+</div>
+
 </div>
 
 <div class="panel">
+
 <h2>Tasks</h2>
-<pre id="tasks"></pre>
+
+<div id="tasks">
+Loading...
+</div>
+
 </div>
 
 <div class="panel">
+
 <h2>Links</h2>
-<pre id="links"></pre>
+
+<div id="links">
+Loading...
 </div>
 
-<div class="panel">
-<h2>Prompt</h2>
+</div>
 
-<textarea id="prompt"></textarea>
+</div>
+
+<div class="panel" style="margin-top:20px;">
+
+<h2>Agent Anna Console</h2>
+
+<textarea id="prompt"
+placeholder="Enter prompt..."></textarea>
 
 <button onclick="ask()">
-Send
+SEND
 </button>
 
 <div id="response"></div>
 
 </div>
 
+</div>
+
 <script>
 
 async function load(){
+
+try{
 
 const brain =
 await fetch("brain.json")
@@ -85,36 +178,71 @@ const links =
 await fetch("links.json")
 .then(r=>r.json());
 
-document
-.getElementById("brain")
-.textContent =
-JSON.stringify(brain,null,2);
+document.getElementById("brain").innerHTML = `
 
-document
-.getElementById("tasks")
-.textContent =
-JSON.stringify(tasks,null,2);
+<div class="item">
+<b>Agent:</b> ${brain.agent}
+</div>
 
-document
-.getElementById("links")
-.textContent =
-JSON.stringify(links,null,2);
+<div class="item">
+<b>Owner:</b> ${brain.owner}
+</div>
+
+<div class="item">
+<b>Status:</b> ${brain.status}
+</div>
+
+`;
+
+document.getElementById("tasks").innerHTML =
+tasks.map(t =>
+
+`<div class="item">
+• ${t.task}
+(<b>${t.status}</b>)
+</div>`
+
+).join("");
+
+document.getElementById("links").innerHTML =
+links.map(l =>
+
+`<div class="item">
+<a href="${l.url}" target="_blank">
+${l.name}
+</a>
+</div>`
+
+).join("");
+
+}
+catch(err){
+
+console.error(err);
+
+document.body.insertAdjacentHTML(
+"beforeend",
+`<div style="color:red;padding:20px;">
+${err}
+</div>`
+);
+
+}
 
 }
 
 function ask(){
 
-let p =
-document
-.getElementById("prompt")
-.value;
+const prompt =
+document.getElementById("prompt").value;
 
-document
-.getElementById("response")
-.innerHTML =
-"<hr>Prompt:<br><br>"
-+
-p;
+document.getElementById("response").innerHTML =
+
+"<b>Prompt Received:</b><br><br>" +
+
+prompt +
+
+"<br><br><i>Dahl connection coming in Phase 3.</i>";
 
 }
 

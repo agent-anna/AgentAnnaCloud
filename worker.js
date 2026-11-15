@@ -24,8 +24,7 @@ export default {
 
         const body = await request.json();
 
-        const prompt =
-          body.prompt || "Hello";
+        const prompt = body.prompt || "Hello";
 
         const response = await fetch(
           "https://inference.dahl.global/v1/chat/completions",

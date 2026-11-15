@@ -27,31 +27,27 @@ export default {
         const prompt =
           body.prompt || "Hello";
 
-        const response =
-          await fetch(
-            "https://inference.dahl.global/v1/chat/completions",
-            {
-              method: "POST",
-              headers: {
-                "Authorization":
-                  `Bearer ${env.DAHL_API_KEY}`,
-                "Content-Type":
-                  "application/json"
-              },
-              body: JSON.stringify({
-                model: "gpt-oss-120b",
-                messages: [
-                  {
-                    role: "user",
-                    content: prompt
-                  }
-                ]
-              })
-            }
-          );
+        const response = await fetch(
+          "https://inference.dahl.global/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${env.DAHL_API_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "MiniMaxAI/MiniMax-M2.7",
+              messages: [
+                {
+                  role: "user",
+                  content: prompt
+                }
+              ]
+            })
+          }
+        );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         return new Response(
           JSON.stringify(data),

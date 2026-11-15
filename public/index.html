@@ -20,9 +20,16 @@ button{margin-top:10px;padding:10px 18px;cursor:pointer;background:#00d9ff;color
 button:hover{opacity:0.85;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 button.danger{background:#ef4444;color:#fff;}
+button.mic-btn{background:#10b981;color:#000;}
+button.mic-btn.active{background:#ef4444;color:#fff;animation:pulse 1s infinite;}
+@keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
 .status{color:#00ff88;font-weight:bold;font-size:13px;}
 #response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;line-height:1.55;font-size:14px;border:1px solid rgba(0,217,255,0.2);}
 #notification{position:fixed;bottom:20px;right:20px;background:#07142a;border:1px solid #00ff88;color:#00ff88;padding:12px 20px;border-radius:8px;display:none;z-index:2000;font-size:13px;box-shadow:0 0 15px rgba(0,255,136,0.2);}
+
+/* Live Audio Visualizer Bars */
+.visualizer{display:flex;gap:4px;align-items:center;height:35px;background:#000;border:1px solid rgba(0,217,255,0.3);border-radius:8px;padding:0 12px;margin-top:15px;overflow:hidden;}
+.bar{flex:1;background:#00d9ff;height:4px;border-radius:2px;transition:height 0.05s ease;}
 </style>
 </head>
 <body>
@@ -53,8 +60,17 @@ button.danger{background:#ef4444;color:#fff;}
   <div class="console-panel">
     <h2>Agent Console</h2>
     <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)"></textarea>
+    
+    <!-- Live Audio Motion Visualizer -->
+    <div class="visualizer" id="viz">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button onclick="ask()">SEND</button>
+      <button id="micBtn" class="mic-btn" onclick="toggleLiveMic()">🎙️ TAP TO SPEAK</button>
       <button class="secondary" onclick="toggleVoice()">🔊 TOGGLE VOICE (<span id="voiceState">ON</span>)</button>
       <button class="danger" onclick="executeStfuProtocol()">🛑 STFU / CANCEL</button>
     </div>
@@ -67,6 +83,11 @@ button.danger{background:#ef4444;color:#fff;}
 <script>
 let cachedVoices = [];
 let isVoiceEnabled = true;
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let isMicActive = false;
+let animationId = null;
 
 function loadVoices() {
     if (!('speechSynthesis' in window)) return;
@@ -139,8 +160,75 @@ function speakText(text) {
     }
 }
 
+// True Live Mic Audio Analyser with Real-time Visualizer Motion
+async function toggleLiveMic() {
+    const micBtn = document.getElementById("micBtn");
+    
+    if (isMicActive) {
+        stopLiveMic();
+        return;
+    }
+
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        
+        microphone = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 64;
+        microphone.connect(analyser);
+
+        isMicActive = true;
+        micBtn.textContent = "🔴 LISTENING (CLICK TO STOP)";
+        micBtn.classList.add("active");
+        updateHUDState("LISTENING");
+        showCyberNotification("🎙️ Microphone active. Speak now — visualizer is reacting to your voice.");
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        const bars = document.querySelectorAll(".visualizer .bar");
+
+        function renderVisualizer() {
+            if (!isMicActive) return;
+            analyser.getByteFrequencyData(dataArray);
+
+            bars.forEach((bar, i) => {
+                const val = dataArray[i] || 0;
+                const height = Math.max(4, (val / 255) * 32);
+                bar.style.height = height + "px";
+                bar.style.background = val > 50 ? "#00ff88" : "#00d9ff";
+            });
+
+            animationId = requestAnimationFrame(renderVisualizer);
+        }
+        renderVisualizer();
+
+    } catch (err) {
+        showCyberNotification("❌ Mic permission denied or unavailable.");
+        stopLiveMic();
+    }
+}
+
+function stopLiveMic() {
+    isMicActive = false;
+    if (animationId) cancelAnimationFrame(animationId);
+    if (audioContext && audioContext.state !== 'closed') audioContext.close();
+    
+    const micBtn = document.getElementById("micBtn");
+    micBtn.textContent = "🎙️ TAP TO SPEAK";
+    micBtn.classList.remove("active");
+    updateHUDState("READY");
+
+    // Reset visualizer bars
+    document.querySelectorAll(".visualizer .bar").forEach(bar => {
+        bar.style.height = "4px";
+        bar.style.background = "#00d9ff";
+    });
+}
+
 function executeStfuProtocol() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    stopLiveMic();
     document.body.classList.remove('is-speaking', 'is-thinking');
     updateHUDState("READY");
     showCyberNotification("🛑 STFU COMMAND EXECUTED: Audio stream terminated.");

@@ -95,8 +95,7 @@ pre{background:#000;padding:15px;border-radius:8px;color:#00ffff;overflow-x:auto
 let selectedVoice = null;
 let lastReply = "";
 let isSpeaking = false;
-let mediaRecorder = null;
-let audioChunks = [];
+let recognition = null;
 let isListening = false;
 window.currentUtterance = null;
 
@@ -155,7 +154,7 @@ function speak(text) {
 }
 
 function testAudio() {
-  speak("Audio check online. Agent Anna speech and visualizer systems are fully operational.");
+  speak("Audio check online. Auto silence detection is active.");
 }
 
 function stopVoice() {
@@ -188,40 +187,59 @@ function updateVoiceButton() {
   }
 }
 
-// Bulletproof MediaRecorder Voice Capture (Works 100% on all phones & PCs with mic permission)
-async function toggleMic() {
-  const micBtn = document.getElementById("micBtn");
+// True auto-stop on silence speech recognition workflow
+function toggleMic() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
+    return;
+  }
 
   if (isListening) {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-      mediaRecorder.stop();
-    }
+    if (recognition) recognition.stop();
     return;
   }
 
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    audioChunks = [];
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false; // Automatically stops on silence
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
-    mediaRecorder.ondataavailable = e => { audioChunks.push(e.data); };
-
-    mediaRecorder.onstop = () => {
-      stream.getTracks().forEach(track => track.stop());
-      stopMicUI();
-      document.getElementById("prompt").value = "Voice inquiry received. Processing audio neural payload...";
-      ask();
+    recognition.onstart = () => {
+      isListening = true;
+      const micBtn = document.getElementById("micBtn");
+      micBtn.textContent = "🔴 LISTENING (SPEAK NOW)...";
+      micBtn.classList.add("listening");
+      setVisualizerActive(true);
+      document.getElementById("response").textContent = "Listening... Speak now. I will auto-send when you pause.";
     };
 
-    mediaRecorder.start();
-    isListening = true;
-    micBtn.textContent = "🔴 RECORDING (CLICK TO STOP)";
-    micBtn.classList.add("listening");
-    setVisualizerActive(true);
-    document.getElementById("response").textContent = "Microphone live! Speak now, then click the recording button again to send to Anna.";
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      document.getElementById("prompt").value = transcript;
+    };
 
+    recognition.onerror = (event) => {
+      console.warn("Speech recognition error:", event.error);
+      stopMicUI();
+    };
+
+    recognition.onend = () => {
+      stopMicUI();
+      const val = document.getElementById("prompt").value.trim();
+      if (val && val.length > 0) {
+        ask(); // Auto-submits immediately upon silence stop
+      }
+    };
+
+    recognition.start();
   } catch (err) {
-    document.getElementById("response").textContent = "Mic Error: " + err.message + ". Check browser mic permissions.";
+    console.warn("Mic start exception:", err);
     stopMicUI();
   }
 }

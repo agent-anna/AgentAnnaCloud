@@ -84,7 +84,7 @@ let lastReply = "";
 let isSpeaking = false;
 let recognition = null;
 let isListening = false;
-window.currentUtterance = null; // Prevent garbage collection muting speech
+window.currentUtterance = null;
 
 function initVoice() {
   if (!("speechSynthesis" in window)) return;
@@ -129,7 +129,7 @@ function speak(text) {
 
   window.currentUtterance.onstart = () => { isSpeaking = true; updateVoiceButton(); };
   window.currentUtterance.onend = () => { isSpeaking = false; updateVoiceButton(); };
-  window.currentUtterance.onerror = (e) => { console.warn("TTS error:", e); isSpeaking = false; updateVoiceButton(); };
+  window.currentUtterance.onerror = (e) => { isSpeaking = false; updateVoiceButton(); };
 
   window.speechSynthesis.speak(window.currentUtterance);
 }
@@ -170,7 +170,7 @@ function updateVoiceButton() {
 function toggleMic() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    alert("Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+    document.getElementById("response").textContent = "Error: Speech recognition not supported in this browser.";
     return;
   }
 
@@ -179,28 +179,40 @@ function toggleMic() {
     return;
   }
 
-  recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 1;
+  try {
+    recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
-  recognition.onstart = () => {
-    isListening = true;
-    const micBtn = document.getElementById("micBtn");
-    micBtn.textContent = "🔴 LISTENING...";
-    micBtn.classList.add("listening");
-  };
+    recognition.onstart = () => {
+      isListening = true;
+      const micBtn = document.getElementById("micBtn");
+      micBtn.textContent = "🔴 LISTENING...";
+      micBtn.classList.add("listening");
+      document.getElementById("response").textContent = "Listening to your voice... Speak now.";
+    };
 
-  recognition.onresult = (event) => {
-    const transcript = event.results[0][0].transcript;
-    document.getElementById("prompt").value = transcript;
-    ask();
-  };
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById("prompt").value = transcript;
+      ask();
+    };
 
-  recognition.onerror = (e) => { console.warn("Mic error:", e); stopMicUI(); };
-  recognition.onend = () => { stopMicUI(); };
+    recognition.onerror = (event) => {
+      document.getElementById("response").textContent = "Mic Error Code: " + event.error;
+      stopMicUI();
+    };
 
-  recognition.start();
+    recognition.onend = () => {
+      stopMicUI();
+    };
+
+    recognition.start();
+  } catch (err) {
+    document.getElementById("response").textContent = "Mic Init Exception: " + err.message;
+    stopMicUI();
+  }
 }
 
 function stopMicUI() {

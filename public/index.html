@@ -6,7 +6,6 @@
 <title>Agent Anna Dashboard</title>
 
 <style>
-
 body{
     margin:0;
     background:#050816;
@@ -89,22 +88,20 @@ a:hover{
     padding:10px;
     border-radius:8px;
     background:#000;
-    min-height:50px;
+    min-height:80px;
+    white-space:pre-wrap;
 }
-
 </style>
 
 </head>
 <body>
 
 <header>
-
 <h1>Agent Anna Dashboard</h1>
 
 <div class="status">
 ONLINE
 </div>
-
 </header>
 
 <div class="container">
@@ -112,33 +109,18 @@ ONLINE
 <div class="grid">
 
 <div class="panel">
-
 <h2>Brain</h2>
-
-<div id="brain">
-Loading...
-</div>
-
+<div id="brain">Loading...</div>
 </div>
 
 <div class="panel">
-
 <h2>Tasks</h2>
-
-<div id="tasks">
-Loading...
-</div>
-
+<div id="tasks">Loading...</div>
 </div>
 
 <div class="panel">
-
 <h2>Links</h2>
-
-<div id="links">
-Loading...
-</div>
-
+<div id="links">Loading...</div>
 </div>
 
 </div>
@@ -147,7 +129,8 @@ Loading...
 
 <h2>Agent Anna Console</h2>
 
-<textarea id="prompt"
+<textarea
+id="prompt"
 placeholder="Enter prompt..."></textarea>
 
 <button onclick="ask()">
@@ -179,7 +162,6 @@ await fetch("links.json")
 .then(r=>r.json());
 
 document.getElementById("brain").innerHTML = `
-
 <div class="item">
 <b>Agent:</b> ${brain.agent}
 </div>
@@ -191,58 +173,75 @@ document.getElementById("brain").innerHTML = `
 <div class="item">
 <b>Status:</b> ${brain.status}
 </div>
-
 `;
 
 document.getElementById("tasks").innerHTML =
 tasks.map(t =>
-
 `<div class="item">
-• ${t.task}
-(<b>${t.status}</b>)
+• ${t.task} (<b>${t.status}</b>)
 </div>`
-
 ).join("");
 
 document.getElementById("links").innerHTML =
 links.map(l =>
-
 `<div class="item">
 <a href="${l.url}" target="_blank">
 ${l.name}
 </a>
 </div>`
-
 ).join("");
 
 }
 catch(err){
 
-console.error(err);
-
-document.body.insertAdjacentHTML(
-"beforeend",
-`<div style="color:red;padding:20px;">
-${err}
-</div>`
-);
+document.getElementById("response").innerHTML =
+"Load Error: " + err;
 
 }
 
 }
 
-function ask(){
+async function ask(){
 
 const prompt =
 document.getElementById("prompt").value;
 
-document.getElementById("response").innerHTML =
+const responseDiv =
+document.getElementById("response");
 
-"<b>Prompt Received:</b><br><br>" +
+responseDiv.innerHTML =
+"Anna is thinking...";
 
-prompt +
+try{
 
-"<br><br><i>Dahl connection coming in Phase 3.</i>";
+const res = await fetch(
+"/functions/api/chat",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+prompt:prompt
+})
+}
+);
+
+const data =
+await res.json();
+
+responseDiv.textContent =
+JSON.stringify(data,null,2);
+
+}
+catch(err){
+
+responseDiv.innerHTML =
+"<span style='color:red'>"+
+err+
+"</span>";
+
+}
 
 }
 

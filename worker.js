@@ -6,32 +6,23 @@ export default {
     if (url.pathname === "/api/chat") {
 
       if (request.method !== "POST") {
-        return Response.json(
+        return new Response(
+          JSON.stringify({
+            status: "online",
+            message: "POST required"
+          }),
           {
-            error: "POST required"
-          },
-          {
-            status: 405
+            status: 405,
+            headers: {
+              "Content-Type": "application/json"
+            }
           }
         );
       }
 
       try {
 
-        const text = await request.text();
-
-        if (!text) {
-          return Response.json(
-            {
-              error: "No request body received"
-            },
-            {
-              status: 400
-            }
-          );
-        }
-
-        const body = JSON.parse(text);
+        const body = await request.json();
 
         const prompt =
           body.prompt || "Hello";
@@ -62,40 +53,30 @@ export default {
         const data =
           await response.json();
 
-        return Response.json(data);
-
-      }
-      catch (err) {
-
-        return Response.json(
+        return new Response(
+          JSON.stringify(data),
           {
-            error: err.message
-          },
+            headers: {
+              "Content-Type": "application/json"
+            }
+          }
+        );
+
+      } catch (error) {
+
+        return new Response(
+          JSON.stringify({
+            error: error.message
+          }),
           {
-            status: 500
+            status: 500,
+            headers: {
+              "Content-Type": "application/json"
+            }
           }
         );
 
       }
-
-    }
-
-    if (
-      url.pathname === "/" ||
-      url.pathname === "/index.html"
-    ) {
-
-      return new Response(
-        await env.ASSETS.fetch(request).then(
-          r => r.text()
-        ),
-        {
-          headers: {
-            "Content-Type":
-              "text/html;charset=utf-8"
-          }
-        }
-      );
 
     }
 

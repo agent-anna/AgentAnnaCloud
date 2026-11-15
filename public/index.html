@@ -6,40 +6,29 @@
 <title>Agent Anna Dashboard</title>
 <style>
 body{margin:0;background:#050816;color:#00d9ff;font-family:Segoe UI,Arial,sans-serif;}
-header{padding:20px;border-bottom:1px solid rgba(0,217,255,.3);background:#07142a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+header{padding:20px;border-bottom:1px solid rgba(0,217,255,.3);background:#07142a;display:flex;justify-content:space-between;align-items:center;}
 h1{margin:0;font-size:24px;}
 .container{padding:20px;max-width:1000px;margin:0 auto;}
 .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
-.panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;cursor:pointer;transition:all 0.2s ease;}
-.panel:hover{border-color:#00ff88;box-shadow:0 0 15px rgba(0,255,136,0.15);}
+.panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;cursor:pointer;}
 .panel h2{margin-top:0;font-size:18px;border-bottom:1px solid rgba(0,217,255,0.2);padding-bottom:8px;}
 .item{margin-bottom:8px;font-size:14px;}
 .console-panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;margin-top:20px;}
-textarea{width:100%;height:105px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:12px;box-sizing:border-box;font-family:inherit;font-size:15px;outline:none;}
+textarea{width:100%;height:100px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:12px;box-sizing:border-box;font-family:inherit;font-size:15px;outline:none;}
 button{margin-top:10px;padding:10px 18px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;}
 button:hover{opacity:0.85;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 button.danger{background:#ef4444;color:#fff;}
 button.mic-btn{background:#10b981;color:#000;}
-button.mic-btn.listening{background:#ef4444;color:#fff;animation:pulse 1s infinite;}
-@keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
 .status{color:#00ff88;font-weight:bold;font-size:13px;}
-#response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;line-height:1.55;font-size:14px;border:1px solid rgba(0,217,255,0.2);}
-#notification{position:fixed;bottom:20px;right:20px;background:#07142a;border:1px solid #00ff88;color:#00ff88;padding:12px 20px;border-radius:8px;display:none;z-index:2000;font-size:13px;box-shadow:0 0 15px rgba(0,255,136,0.2);}
-
-.visualizer{display:flex;gap:4px;align-items:center;height:35px;background:#000;border:1px solid rgba(0,217,255,0.3);border-radius:8px;padding:0 12px;margin-top:15px;overflow:hidden;}
-.bar{flex:1;background:#00d9ff;height:4px;border-radius:2px;transition:height 0.1s ease;}
-.visualizer.active .bar{animation:wave 0.8s infinite ease-in-out alternate;}
-@keyframes wave{0%{height:4px;}100%{height:26px;background:#00ff88;}}
+#response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;font-size:14px;border:1px solid rgba(0,217,255,0.2);}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Agent Anna Cloud Dashboard</h1>
-  <div style="display:flex;gap:15px;align-items:center;">
-    <span id="hudState" class="status">READY</span>
-  </div>
+  <h1>Agent Anna Dashboard</h1>
+  <span id="hudState" class="status">READY</span>
 </header>
 
 <div class="container">
@@ -60,25 +49,17 @@ button.mic-btn.listening{background:#ef4444;color:#fff;animation:pulse 1s infini
 
   <div class="console-panel">
     <h2>Agent Console</h2>
-    <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)"></textarea>
+    <textarea id="prompt" placeholder="Type your prompt here... (Press Enter to send)"></textarea>
     
-    <div id="viz" class="visualizer">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-    </div>
-
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button onclick="ask()">SEND</button>
-      <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎙️ TAP TO SPEAK</button>
-      <button class="secondary" onclick="toggleVoice()">🔊 TOGGLE VOICE (<span id="voiceState">ON</span>)</button>
-      <button class="danger" onclick="executeStfuProtocol()">🛑 STFU / CANCEL</button>
+      <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎙️ TEST MIC</button>
+      <button class="secondary" onclick="toggleVoice()">🔊 VOICE: <span id="voiceState">ON</span></button>
+      <button class="danger" onclick="executeStfuProtocol()">🛑 STOP VOICE</button>
     </div>
-    <div id="response">Ready.</div>
+    <div id="response">System online. Ready for input.</div>
   </div>
 </div>
-
-<div id="notification"></div>
 
 <script>
 let cachedVoices = [];
@@ -96,89 +77,33 @@ if ('speechSynthesis' in window) {
     loadVoices();
 }
 
-function updateHUDState(state) {
-    const hud = document.getElementById("hudState");
-    if (hud) hud.textContent = state;
-}
-
-function showCyberNotification(msg) {
-    const n = document.getElementById("notification");
-    if (!n) return;
-    n.textContent = msg;
-    n.style.display = "block";
-    setTimeout(() => { n.style.display = "none"; }, 3500);
-}
-
-function setVisualizerActive(active) {
-    const viz = document.getElementById("viz");
-    if (active) viz.classList.add("active");
-    else viz.classList.remove("active");
-}
-
 function speakText(text) {
     if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
     try {
         window.speechSynthesis.cancel();
-        
-        // STRIP EMOJIS AND SYMBOLS SO SHE NEVER READS THEM ALOUD
         let cleanText = text
             .replace(/([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDDFF])/g, '')
             .replace(/```[\s\S]*?```/g, ' [Code block omitted] ')
-            .replace(/`[^`]*`/g, ' snippet ')
-            .replace(/<[^>]*>/g, '')
             .replace(/[*_#`~=]/g, ' ')
             .trim();
 
         if (!cleanText) return;
 
-        document.body.classList.remove('is-thinking');
-        document.body.classList.add('is-speaking');
-        updateHUDState("SPEAKING");
-        setVisualizerActive(true);
-
         let voices = window.speechSynthesis.getVoices();
         if (!voices || voices.length === 0) voices = cachedVoices;
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        const voice = voices.find(v => 
-            v.name.includes("Google UK English Female") || 
-            v.name.includes("Victoria") || 
-            v.name.includes("Samantha") || 
-            v.name.includes("Zira")
-        ) || voices.find(v => v.lang.includes('en-GB') || v.lang.includes('en-US')) || voices[0];
-
+        const voice = voices.find(v => v.name.includes("Google UK English Female") || v.name.includes("Victoria") || v.name.includes("Samantha") || v.name.includes("Zira")) || voices[0];
         if (voice) utterance.voice = voice;
-        utterance.pitch = 1.02;
-        utterance.rate = 0.98;
-
-        utterance.onend = () => {
-            document.body.classList.remove('is-speaking');
-            updateHUDState("READY");
-            setVisualizerActive(false);
-        };
-        utterance.onerror = () => {
-            document.body.classList.remove('is-speaking');
-            updateHUDState("READY");
-            setVisualizerActive(false);
-        };
 
         window.speechSynthesis.speak(utterance);
-    } catch (e) {
-        document.body.classList.remove('is-speaking');
-        updateHUDState("READY");
-        setVisualizerActive(false);
-    }
+    } catch (e) {}
 }
 
 function toggleMic() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        document.getElementById("response").textContent = "Speech recognition is not supported in this browser. Please type your message.";
-        return;
-    }
-
-    if (isListening) {
-        if (recognition) recognition.stop();
+        document.getElementById("response").textContent = "ERROR: Speech Recognition is not supported by this browser. Use Google Chrome.";
         return;
     }
 
@@ -186,59 +111,31 @@ function toggleMic() {
         recognition = new SpeechRecognition();
         recognition.lang = "en-US";
         recognition.continuous = false;
-        recognition.interimResults = true;
+        recognition.interimResults = false;
 
         recognition.onstart = () => {
-            isListening = true;
-            document.getElementById("micBtn").textContent = "🔴 LISTENING...";
-            document.getElementById("micBtn").classList.add("listening");
-            setVisualizerActive(true);
-            updateHUDState("LISTENING");
-            document.getElementById("response").textContent = "Listening... Speak clearly into your microphone.";
+            document.getElementById("response").textContent = "DIAGNOSTIC: Mic is listening... Speak now.";
         };
 
         recognition.onresult = (event) => {
-            let transcript = "";
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                transcript += event.results[i][0].transcript;
-            }
+            const transcript = event.results[0][0].transcript;
             document.getElementById("prompt").value = transcript;
+            document.getElementById("response").textContent = "HEARD: " + transcript;
+            ask();
         };
 
         recognition.onerror = (event) => {
-            document.getElementById("response").textContent = "Mic error (" + event.error + "). Check permissions or use text box.";
-            stopMicUI();
-        };
-
-        recognition.onend = () => {
-            stopMicUI();
-            const val = document.getElementById("prompt").value.trim();
-            if (val) {
-                ask();
-            }
+            document.getElementById("response").textContent = "DIAGNOSTIC MIC ERROR: [" + event.error + "]. (If error is 'not-allowed' or 'network', your browser blocked the speech service).";
         };
 
         recognition.start();
     } catch (err) {
-        document.getElementById("response").textContent = "Mic exception: " + err.message;
-        stopMicUI();
+        document.getElementById("response").textContent = "EXCEPTION: " + err.message;
     }
-}
-
-function stopMicUI() {
-    isListening = false;
-    document.getElementById("micBtn").textContent = "🎙️ TAP TO SPEAK";
-    document.getElementById("micBtn").classList.remove("listening");
-    setVisualizerActive(false);
-    updateHUDState("READY");
 }
 
 function executeStfuProtocol() {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    if (recognition) try { recognition.stop(); } catch(e){}
-    stopMicUI();
-    document.body.classList.remove('is-speaking', 'is-thinking');
-    updateHUDState("READY");
 }
 
 function toggleVoice() {
@@ -262,9 +159,6 @@ async function ask() {
 
     executeStfuProtocol();
     resDiv.textContent = "Anna is thinking...";
-    document.body.classList.add('is-thinking');
-    updateHUDState("THINKING");
-    setVisualizerActive(true);
 
     try {
         const res = await fetch("https://agentannacloud.agent-anna-aa01.workers.dev/api/chat", {
@@ -280,10 +174,7 @@ async function ask() {
         promptInput.value = "";
         speakText(reply);
     } catch (err) {
-        resDiv.textContent = "Error: " + err;
-        document.body.classList.remove('is-thinking');
-        updateHUDState("READY");
-        setVisualizerActive(false);
+        resDiv.textContent = "Error connecting to Cloudflare Worker endpoint: " + err;
     }
 }
 
@@ -295,19 +186,10 @@ async function loadPortal() {
             fetch("links.json").then(r => r.json())
         ]);
 
-        document.getElementById("brain").innerHTML =
-            `<div class="item"><b>Agent:</b> ${brain.agent}</div>` +
-            `<div class="item"><b>Owner:</b> ${brain.owner}</div>` +
-            `<div class="item"><b>Status:</b> ${brain.status}</div>`;
-
-        document.getElementById("tasks").innerHTML =
-            tasks.map(t => `<div class="item">• ${t.task} (<b style="color:#00ff88">${t.status}</b>)</div>`).join("");
-
-        document.getElementById("links").innerHTML =
-            links.map(l => `<div class="item"><a href="${l.url}" target="_blank" style="color:#00ffff;text-decoration:underline;">${l.name}</a></div>`).join("");
-    } catch (err) {
-        console.warn("Portal data load fallback");
-    }
+        document.getElementById("brain").innerHTML = `<div class="item"><b>Agent:</b> ${brain.agent}</div><div class="item"><b>Owner:</b> ${brain.owner}</div>`;
+        document.getElementById("tasks").innerHTML = tasks.map(t => `<div class="item">• ${t.task} (${t.status})</div>`).join("");
+        document.getElementById("links").innerHTML = links.map(l => `<div class="item"><a href="${l.url}" target="_blank" style="color:#00ffff;">${l.name}</a></div>`).join("");
+    } catch (err) {}
 }
 
 loadPortal();

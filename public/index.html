@@ -3,35 +3,67 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Agent Anna</title>
+<title>Agent Anna Neural Portal</title>
 <style>
 body{margin:0;background:#050816;color:#00d9ff;font-family:Segoe UI,Arial,sans-serif;}
 header{padding:20px;border-bottom:1px solid rgba(0,217,255,.3);background:#07142a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
-h1{margin:0;}
-.container{padding:20px;max-width:820px;margin:0 auto;}
-.panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;margin-top:20px;}
-textarea{width:100%;height:105px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:10px;box-sizing:border-box;font-family:inherit;font-size:15px;outline:none;}
-button{margin-top:10px;padding:10px 20px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;}
+h1{margin:0;font-size:24px;letter-spacing:1px;}
+.container{padding:20px;max-width:1000px;margin:0 auto;}
+.grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
+.panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;cursor:pointer;transition:all 0.2s ease;box-shadow:0 4px 20px rgba(0,217,255,0.05);}
+.panel:hover{transform:translateY(-3px);border-color:#00ff88;box-shadow:0 6px 25px rgba(0,255,136,0.15);}
+.panel h2{margin-top:0;font-size:18px;border-bottom:1px solid rgba(0,217,255,0.2);padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.item{margin-bottom:8px;font-size:14px;}
+.console-panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;margin-top:20px;}
+textarea{width:100%;height:105px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:12px;box-sizing:border-box;font-family:inherit;font-size:15px;outline:none;}
+button{margin-top:10px;padding:10px 20px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;transition:opacity 0.2s;}
+button:hover{opacity:0.85;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 button.mic-btn{background:#10b981;color:#000;}
 button.mic-btn.listening{background:#ef4444;color:#fff;animation:pulse 1.5s infinite;}
 @keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
-.status{color:#00ff88;font-weight:bold;}
-#response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;line-height:1.55;}
+.status{color:#00ff88;font-weight:bold;font-size:13px;}
+#response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;line-height:1.55;font-size:14px;border:1px solid rgba(0,217,255,0.2);}
+/* Modal Inspector */
+#modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,8,22,0.85);backdrop-filter:blur(5px);justify-content:center;align-items:center;z-index:1000;}
+.modal-content{background:#07142a;border:1px solid #00ff88;border-radius:16px;padding:30px;width:90%;max-width:600px;box-shadow:0 0 30px rgba(0,255,136,0.2);position:relative;}
+.modal-content h3{margin-top:0;color:#00ff88;}
+pre{background:#000;padding:15px;border-radius:8px;color:#00ffff;overflow-x:auto;font-size:13px;border:1px solid rgba(0,217,255,0.3);}
+.close-btn{position:absolute;top:15px;right:20px;background:none;border:none;color:#00d9ff;font-size:20px;cursor:pointer;}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Agent Anna</h1>
-  <div style="display:flex;gap:12px;align-items:center;">
+  <h1>Agent Anna Neural Portal</h1>
+  <div style="display:flex;gap:15px;align-items:center;">
     <span id="voiceStatus" style="font-size:12px;color:#00ff88;">Voice: Ready</span>
     <div class="status">ONLINE</div>
   </div>
 </header>
 
 <div class="container">
-  <div class="panel">
+  <div class="grid">
+    <!-- Brain Module -->
+    <div class="panel" onclick="inspectAsset('brain.json', 'Brain Module (brain.json)')">
+      <h2>Brain <span>🔍</span></h2>
+      <div id="brain">Loading core...</div>
+    </div>
+
+    <!-- Tasks Module -->
+    <div class="panel" onclick="inspectAsset('tasks.json', 'Active Tasks Matrix (tasks.json)')">
+      <h2>Tasks <span>🔍</span></h2>
+      <div id="tasks">Loading tasks...</div>
+    </div>
+
+    <!-- Links / Memory Module -->
+    <div class="panel" onclick="inspectAsset('memory.json', 'Neural Memory (memory.json)')">
+      <h2>Memory & Links <span>🔍</span></h2>
+      <div id="links">Loading links...</div>
+    </div>
+  </div>
+
+  <div class="console-panel">
     <h2>Agent Console</h2>
     <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)"></textarea>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -40,6 +72,15 @@ button.mic-btn.listening{background:#ef4444;color:#fff;animation:pulse 1.5s infi
       <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎙️ TAP TO SPEAK</button>
     </div>
     <div id="response">Ready.</div>
+  </div>
+</div>
+
+<!-- Interactive Inspection Modal -->
+<div id="modal" onclick="if(event.target === this) closeModal()">
+  <div class="modal-content">
+    <button class="close-btn" onclick="closeModal()">&times;</button>
+    <h3 id="modalTitle">Asset Inspector</h3>
+    <pre id="modalBody">Loading JSON...</pre>
   </div>
 </div>
 
@@ -127,7 +168,7 @@ function updateVoiceButton() {
   }
 }
 
-// Tap-to-Speak Microphone Setup (Speech Recognition)
+// Tap-to-Speak Microphone Setup
 function toggleMic() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
@@ -158,14 +199,8 @@ function toggleMic() {
     ask();
   };
 
-  recognition.onerror = (event) => {
-    console.warn("Speech recognition error:", event.error);
-    stopMicUI();
-  };
-
-  recognition.onend = () => {
-    stopMicUI();
-  };
+  recognition.onerror = () => { stopMicUI(); };
+  recognition.onend = () => { stopMicUI(); };
 
   recognition.start();
 }
@@ -175,6 +210,51 @@ function stopMicUI() {
   const micBtn = document.getElementById("micBtn");
   micBtn.textContent = "🎙️ TAP TO SPEAK";
   micBtn.classList.remove("listening");
+}
+
+// Dynamic Asset Inspector Modal
+async function inspectAsset(filename, title) {
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").textContent = "Loading raw node data...";
+  document.getElementById("modal").style.display = "flex";
+
+  try {
+    const res = await fetch(filename);
+    const data = await res.json();
+    document.getElementById("modalBody").textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    document.getElementById("modalBody").textContent = "Error loading " + filename + ": " + err;
+  }
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+// Load brain, tasks, and links dynamically on boot
+async function loadPortal() {
+  try {
+    const [brain, tasks, links] = await Promise.all([
+      fetch("brain.json").then(r => r.json()),
+      fetch("tasks.json").then(r => r.json()),
+      fetch("links.json").then(r => r.json())
+    ]);
+
+    document.getElementById("brain").innerHTML =
+      `<div class="item"><b>Agent:</b> ${brain.agent}</div>` +
+      `<div class="item"><b>Owner:</b> ${brain.owner}</div>` +
+      `<div class="item"><b>Status:</b> ${brain.status}</div>`;
+
+    document.getElementById("tasks").innerHTML =
+      tasks.map(t => `<div class="item">• ${t.task} (<b style="color:#00ff88">${t.status}</b>)</div>`).join("");
+
+    document.getElementById("links").innerHTML =
+      links.map(l => `<div class="item"><a href="${l.url}" target="_blank" style="color:#00ffff;text-decoration:underline;">${l.name}</a></div>`).join("") +
+      `<div class="item" style="margin-top:6px;color:#a0aec0;font-style:italic;">Click any panel above to inspect raw JSON nodes.</div>`;
+
+  } catch (err) {
+    console.warn("Portal data load fallback:", err);
+  }
 }
 
 document.getElementById("prompt").addEventListener("keydown", function(event) {
@@ -211,6 +291,8 @@ async function ask() {
     resDiv.textContent = "Error: " + err;
   }
 }
+
+loadPortal();
 </script>
 
 </body>

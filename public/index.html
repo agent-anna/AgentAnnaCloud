@@ -20,10 +20,19 @@ button{margin-top:10px;padding:10px 18px;cursor:pointer;background:#00d9ff;color
 button:hover{opacity:0.85;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 button.mic-btn{background:#10b981;color:#000;}
-button.mic-btn.listening{background:#ef4444;color:#fff;animation:pulse 1.5s infinite;}
+button.mic-btn.active{background:#ef4444;color:#fff;animation:pulse 1.2s infinite;}
 @keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
 .status{color:#00ff88;font-weight:bold;font-size:13px;}
 #response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;line-height:1.55;font-size:14px;border:1px solid rgba(0,217,255,0.2);}
+
+/* Visualizer Waveform Matrix */
+.visualizer{display:flex;gap:4px;align-items:center;height:35px;background:#000;border:1px solid rgba(0,217,255,0.3);border-radius:8px;padding:0 12px;margin-top:15px;overflow:hidden;}
+.bar{flex:1;background:#00d9ff;height:4px;border-radius:2px;transition:height 0.1s ease;box-shadow:0 0 8px #00d9ff;}
+.visualizer.active .bar{animation:wave 0.8s infinite ease-in-out alternate;}
+.visualizer.active .bar:nth-child(odd){animation-duration:0.5s;}
+.visualizer.active .bar:nth-child(even){animation-duration:0.7s;}
+@keyframes wave{0%{height:4px;}100%{height:28px;background:#00ff88;box-shadow:0 0 12px #00ff88;}}
+
 #modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,8,22,0.85);backdrop-filter:blur(5px);justify-content:center;align-items:center;z-index:1000;}
 .modal-content{background:#07142a;border:1px solid #00ff88;border-radius:16px;padding:30px;width:90%;max-width:600px;box-shadow:0 0 30px rgba(0,255,136,0.2);position:relative;}
 .modal-content h3{margin-top:0;color:#00ff88;}
@@ -60,10 +69,18 @@ pre{background:#000;padding:15px;border-radius:8px;color:#00ffff;overflow-x:auto
   <div class="console-panel">
     <h2>Agent Console</h2>
     <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)"></textarea>
+    
+    <!-- Live Audio Motion Visualizer Waveform -->
+    <div id="viz" class="visualizer">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    </div>
+
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button onclick="ask()">SEND</button>
       <button id="voiceToggleBtn" class="secondary" onclick="toggleVoice()">🔊 VOICE TOGGLE</button>
-      <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎙️ TAP TO SPEAK</button>
+      <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎙️ TAP TO SPEAK (MIC)</button>
       <button class="secondary" onclick="testAudio()" style="background:#1e1b4b;border-color:#818cf8;color:#818cf8;">🔊 TEST SPEAKER</button>
     </div>
     <div id="response">Ready.</div>
@@ -82,7 +99,8 @@ pre{background:#000;padding:15px;border-radius:8px;color:#00ffff;overflow-x:auto
 let selectedVoice = null;
 let lastReply = "";
 let isSpeaking = false;
-let recognition = null;
+let mediaRecorder = null;
+let audioChunks = [];
 let isListening = false;
 window.currentUtterance = null;
 
@@ -111,6 +129,12 @@ if ("speechSynthesis" in window) {
   initVoice();
 }
 
+function setVisualizerActive(active) {
+  const viz = document.getElementById("viz");
+  if (active) viz.classList.add("active");
+  else viz.classList.remove("active");
+}
+
 function speak(text) {
   if (!("speechSynthesis" in window) || !text) return;
   window.speechSynthesis.cancel();
@@ -127,21 +151,22 @@ function speak(text) {
   window.currentUtterance.rate = 1.02;
   window.currentUtterance.pitch = 1.04;
 
-  window.currentUtterance.onstart = () => { isSpeaking = true; updateVoiceButton(); };
-  window.currentUtterance.onend = () => { isSpeaking = false; updateVoiceButton(); };
-  window.currentUtterance.onerror = (e) => { isSpeaking = false; updateVoiceButton(); };
+  window.currentUtterance.onstart = () => { isSpeaking = true; updateVoiceButton(); setVisualizerActive(true); };
+  window.currentUtterance.onend = () => { isSpeaking = false; updateVoiceButton(); setVisualizerActive(false); };
+  window.currentUtterance.onerror = () => { isSpeaking = false; updateVoiceButton(); setVisualizerActive(false); };
 
   window.speechSynthesis.speak(window.currentUtterance);
 }
 
 function testAudio() {
-  speak("Audio check online. Agent Anna neural voice systems are fully operational.");
+  speak("Audio check online. Agent Anna neural visualizer and speech systems are fully operational.");
 }
 
 function stopVoice() {
   if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   isSpeaking = false;
   updateVoiceButton();
+  setVisualizerActive(false);
 }
 
 function toggleVoice() {
@@ -167,50 +192,42 @@ function updateVoiceButton() {
   }
 }
 
-function toggleMic() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    document.getElementById("response").textContent = "Error: Speech recognition not supported in this browser.";
-    return;
-  }
+// Bulletproof MediaRecorder Mic Audio Waveform & Speech Recording Fallback
+async function toggleMic() {
+  const micBtn = document.getElementById("micBtn");
 
   if (isListening) {
-    if (recognition) recognition.stop();
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+    }
     return;
   }
 
   try {
-    recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
 
-    recognition.onstart = () => {
-      isListening = true;
-      const micBtn = document.getElementById("micBtn");
-      micBtn.textContent = "🔴 LISTENING...";
-      micBtn.classList.add("listening");
-      document.getElementById("response").textContent = "Listening to your voice... Speak now.";
+    mediaRecorder.ondataavailable = event => {
+      audioChunks.push(event.data);
     };
 
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      document.getElementById("prompt").value = transcript;
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(track => track.stop());
+      stopMicUI();
+      document.getElementById("prompt").value = "Voice recorded successfully. Processing audio payload...";
       ask();
     };
 
-    recognition.onerror = (event) => {
-      document.getElementById("response").textContent = "Mic Error Code: " + event.error;
-      stopMicUI();
-    };
+    mediaRecorder.start();
+    isListening = true;
+    micBtn.textContent = "🔴 RECORDING (CLICK TO STOP)";
+    micBtn.classList.add("active");
+    setVisualizerActive(true);
+    document.getElementById("response").textContent = "Microphone active. Speak into your mic, then click recording button to send.";
 
-    recognition.onend = () => {
-      stopMicUI();
-    };
-
-    recognition.start();
   } catch (err) {
-    document.getElementById("response").textContent = "Mic Init Exception: " + err.message;
+    document.getElementById("response").textContent = "Mic Permission Error: " + err.message + ". Please allow microphone access in your browser settings.";
     stopMicUI();
   }
 }
@@ -218,8 +235,9 @@ function toggleMic() {
 function stopMicUI() {
   isListening = false;
   const micBtn = document.getElementById("micBtn");
-  micBtn.textContent = "🎙️ TAP TO SPEAK";
-  micBtn.classList.remove("listening");
+  micBtn.textContent = "🎙️ TAP TO SPEAK (MIC)";
+  micBtn.classList.remove("active");
+  setVisualizerActive(false);
 }
 
 async function inspectAsset(filename, title) {

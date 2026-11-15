@@ -1,91 +1,91 @@
-// /functions/chat.js
-
 export async function onRequest(context) {
-  // Handle CORS preflight
+
   if (context.request.method === "OPTIONS") {
     return new Response(null, {
       headers: {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
+        "Access-Control-Allow-Headers": "Content-Type"
+      }
     });
   }
 
-  // Only accept POST
   if (context.request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Method not allowed"
+      }),
+      {
+        status: 405,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      }
+    );
   }
 
   try {
-    const { prompt, context: chatContext } = await context.request.json();
+
+    const body = await context.request.json();
+
+    const prompt = body.prompt;
 
     if (!prompt) {
-      return new Response(JSON.stringify({ error: "No prompt provided" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+
+      return new Response(
+        JSON.stringify({
+          error: "No prompt provided"
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
     }
 
-    // Get secret key from Cloudflare
     const apiKey = context.env.DAHL_API_KEY;
 
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: "API not configured" }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Call Dahl API
-    const dahlResponse = await fetch("https://api.dahliaos.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        prompt: prompt,
-        context: chatContext || [],
-        agent: "Anna",
-      }),
-    });
-
-    if (!dahlResponse.ok) {
-      throw new Error(`Dahl API error: ${dahlResponse.status}`);
-    }
-
-    const data = await dahlResponse.json();
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        response: data.response,
-        model: data.model,
-      }),
+    const response = await fetch(
+      "https://inference.dahl.global/v1/chat/completions",
       {
+        method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
         },
+        body: JSON.stringify({
+          model: "gpt-oss-120b",
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
       }
     );
-  } catch (error) {
+
+    const data = await response.json();
+
+    return Response.json(data);
+
+  } catch (err) {
+
     return new Response(
       JSON.stringify({
-        error: true,
-        message: error.message,
+        error: err.message
       }),
       {
         status: 500,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
+
   }
+
 }

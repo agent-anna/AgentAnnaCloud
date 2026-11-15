@@ -10,8 +10,7 @@ header{padding:20px;border-bottom:1px solid rgba(0,217,255,.3);background:#07142
 h1{margin:0;}
 .container{padding:20px;max-width:820px;margin:0 auto;}
 .panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;margin-top:20px;}
-textarea{width:100%;height:105px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:10px;box-sizing:border-box;font-family:inherit;font-size:15px;}
-select{background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:8px 12px;font-size:13px;}
+textarea{width:100%;height:105px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:10px;box-sizing:border-box;font-family:inherit;font-size:15px;outline:none;}
 button{margin-top:10px;padding:10px 20px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 .status{color:#00ff88;font-weight:bold;}
@@ -23,11 +22,7 @@ button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 <header>
   <h1>Agent Anna</h1>
   <div style="display:flex;gap:12px;align-items:center;">
-    <select id="voiceSelect" title="Cloud Neural Female Voice">
-      <option value="Joanna" selected>Anna US (Adult Female)</option>
-      <option value="Amy">Anna UK (British Female)</option>
-      <option value="Kendra">Anna Warm (US Female)</option>
-    </select>
+    <span id="voiceStatus" style="font-size:12px;color:#00ff88;">Voice: Ready</span>
     <div class="status">ONLINE</div>
   </div>
 </header>
@@ -35,7 +30,7 @@ button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 <div class="container">
   <div class="panel">
     <h2>Agent Console</h2>
-    <textarea id="prompt" placeholder="Ask Anna anything..."></textarea>
+    <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)" onkeydown="handleKeyDown(event)"></textarea>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button onclick="ask()">SEND</button>
       <button class="secondary" onclick="replayVoice()">REPLAY VOICE</button>
@@ -46,53 +41,70 @@ button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 </div>
 
 <script>
-let currentAudio = null;
+let selectedVoice = null;
 let lastReply = "";
 
-function stopVoice() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio.currentTime = 0;
-    currentAudio = null;
+function initVoice() {
+  if (!("speechSynthesis" in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices.length) return;
+
+  const isMale = n => /(david|mark|george|guy|ryan|richard|james|daniel|male)/i.test(n);
+  const englishVoices = voices.filter(v => v.lang.startsWith("en") && !isMale(v.name));
+
+  selectedVoice =
+    englishVoices.find(v => v.name.includes("Google US English")) ||
+    englishVoices.find(v => v.name.includes("Google UK English Female")) ||
+    englishVoices.find(v => /(aria|jenny|ava|emma|samantha|zira|hazel)/i.test(v.name)) ||
+    englishVoices[0] ||
+    voices[0];
+
+  if (selectedVoice) {
+    document.getElementById("voiceStatus").textContent = "Voice: " + selectedVoice.name;
   }
 }
 
-function speakCloud(text) {
-  if (!text) return;
-  stopVoice();
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.onvoiceschanged = initVoice;
+  initVoice();
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window) || !text) return;
+  window.speechSynthesis.cancel();
+  initVoice();
 
   const clean = text
-    .replace(/```[\s\S]*?```/g, "Code provided on screen.")
+    .replace(/```[\s\S]*?```/g, "Code snippet provided on screen.")
     .replace(/[#*_`>-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  const voice = document.getElementById("voiceSelect").value || "Joanna";
-  const chunks = clean.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [clean];
-  let index = 0;
+  const utterance = new SpeechSynthesisUtterance(clean);
+  if (selectedVoice) utterance.voice = selectedVoice;
+  utterance.rate = 1.02;
+  utterance.pitch = 1.04;
+  window.speechSynthesis.speak(utterance);
+}
 
-  function playNext() {
-    if (index >= chunks.length) return;
-    const chunk = chunks[index].trim();
-    index++;
-    if (!chunk) return playNext();
-
-    const audioUrl = `/api/tts?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(chunk)}`;
-    currentAudio = new Audio(audioUrl);
-    currentAudio.onended = playNext;
-    currentAudio.onerror = playNext;
-    currentAudio.play().catch(err => console.warn("Audio blocked:", err));
-  }
-
-  playNext();
+function stopVoice() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
 function replayVoice() {
-  if (lastReply) speakCloud(lastReply);
+  if (lastReply) speak(lastReply);
+}
+
+function handleKeyDown(event) {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    ask();
+  }
 }
 
 async function ask() {
-  const prompt = document.getElementById("prompt").value.trim();
+  const promptInput = document.getElementById("prompt");
+  const prompt = promptInput.value.trim();
   const resDiv = document.getElementById("response");
   if (!prompt) return;
 
@@ -111,7 +123,8 @@ async function ask() {
 
     lastReply = reply;
     resDiv.textContent = reply;
-    speakCloud(reply);
+    promptInput.value = "";
+    speak(reply);
   } catch (err) {
     resDiv.textContent = "Error: " + err;
   }

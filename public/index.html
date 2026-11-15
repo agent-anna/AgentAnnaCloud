@@ -3,250 +3,88 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Agent Anna Dashboard</title>
-
+<title>Agent Anna</title>
 <style>
-body{
-    margin:0;
-    background:#050816;
-    color:#00d9ff;
-    font-family:Segoe UI,Arial,sans-serif;
-}
-
-header{
-    padding:20px;
-    border-bottom:1px solid rgba(0,217,255,.3);
-    background:#07142a;
-}
-
-h1{
-    margin:0;
-}
-
-.container{
-    padding:20px;
-}
-
-.grid{
-    display:grid;
-    gap:20px;
-    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
-}
-
-.panel{
-    border:1px solid #00d9ff;
-    border-radius:16px;
-    background:#07142a;
-    padding:16px;
-}
-
-.panel h2{
-    margin-top:0;
-}
-
-textarea{
-    width:100%;
-    height:120px;
-    background:#000;
-    color:#00ffff;
-    border:1px solid #00d9ff;
-    border-radius:8px;
-    padding:10px;
-}
-
-button{
-    margin-top:10px;
-    padding:10px 20px;
-    cursor:pointer;
-    background:#00d9ff;
-    color:#000;
-    border:none;
-    border-radius:8px;
-    font-weight:bold;
-}
-
-a{
-    color:#00ffff;
-    text-decoration:none;
-}
-
-a:hover{
-    text-decoration:underline;
-}
-
-.item{
-    margin-bottom:8px;
-}
-
-.status{
-    color:#00ff88;
-    font-weight:bold;
-}
-
-#response{
-    margin-top:15px;
-    padding:10px;
-    border-radius:8px;
-    background:#000;
-    min-height:80px;
-    white-space:pre-wrap;
-}
+body{margin:0;background:#050816;color:#00d9ff;font-family:Segoe UI,Arial,sans-serif;}
+header{padding:20px;border-bottom:1px solid rgba(0,217,255,.3);background:#07142a;display:flex;justify-content:space-between;align-items:center;}
+h1{margin:0;}
+.container{padding:20px;max-width:800px;margin:0 auto;}
+.panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;margin-top:20px;}
+textarea{width:100%;height:100px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:10px;box-sizing:border-box;}
+button{margin-top:10px;padding:10px 20px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;}
+.status{color:#00ff88;font-weight:bold;}
+#response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:60px;white-space:pre-wrap;color:#fff;}
 </style>
-
 </head>
 <body>
 
 <header>
-<h1>Agent Anna Dashboard</h1>
-
-<div class="status">
-ONLINE
-</div>
+  <h1>Agent Anna</h1>
+  <div class="status">ONLINE</div>
 </header>
 
 <div class="container">
-
-<div class="grid">
-
-<div class="panel">
-<h2>Brain</h2>
-<div id="brain">Loading...</div>
-</div>
-
-<div class="panel">
-<h2>Tasks</h2>
-<div id="tasks">Loading...</div>
-</div>
-
-<div class="panel">
-<h2>Links</h2>
-<div id="links">Loading...</div>
-</div>
-
-</div>
-
-<div class="panel" style="margin-top:20px;">
-
-<h2>Agent Anna Console</h2>
-
-<textarea
-id="prompt"
-placeholder="Enter prompt..."></textarea>
-
-<button onclick="ask()">
-SEND
-</button>
-
-<div id="response"></div>
-
-</div>
-
+  <div class="panel">
+    <h2>Agent Console</h2>
+    <textarea id="prompt" placeholder="Ask Anna anything..."></textarea>
+    <div style="display:flex;gap:10px;">
+      <button onclick="ask()">SEND</button>
+      <button onclick="stopVoice()" style="background:#333;color:#fff;">STOP VOICE</button>
+    </div>
+    <div id="response">Ready.</div>
+  </div>
 </div>
 
 <script>
+let selectedVoice = null;
 
-async function load(){
-
-try{
-
-const brain =
-await fetch("brain.json")
-.then(r=>r.json());
-
-const tasks =
-await fetch("tasks.json")
-.then(r=>r.json());
-
-const links =
-await fetch("links.json")
-.then(r=>r.json());
-
-document.getElementById("brain").innerHTML = `
-<div class="item">
-<b>Agent:</b> ${brain.agent}
-</div>
-
-<div class="item">
-<b>Owner:</b> ${brain.owner}
-</div>
-
-<div class="item">
-<b>Status:</b> ${brain.status}
-</div>
-`;
-
-document.getElementById("tasks").innerHTML =
-tasks.map(t =>
-`<div class="item">
-• ${t.task} (<b>${t.status}</b>)
-</div>`
-).join("");
-
-document.getElementById("links").innerHTML =
-links.map(l =>
-`<div class="item">
-<a href="${l.url}" target="_blank">
-${l.name}
-</a>
-</div>`
-).join("");
-
-}
-catch(err){
-
-document.getElementById("response").innerHTML =
-"Load Error: " + err;
-
+function loadVoice() {
+  if (!("speechSynthesis" in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  selectedVoice = voices.find(v => v.name.includes("Google US English") || v.name.includes("Google UK English Female") || (v.lang.startsWith("en") && v.name.toLowerCase().includes("female"))) || voices.find(v => v.lang.startsWith("en"));
 }
 
+if ("speechSynthesis" in window) {
+  window.speechSynthesis.onvoiceschanged = loadVoice;
+  loadVoice();
 }
 
-async function ask(){
-
-const prompt =
-document.getElementById("prompt").value;
-
-const responseDiv =
-document.getElementById("response");
-
-responseDiv.innerHTML =
-"Anna is thinking...";
-
-try{
-
-const res = await fetch(
-"/api/chat",
-{
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
-body:JSON.stringify({
-prompt:prompt
-})
-}
-);
-
-const data =
-await res.json();
-
-responseDiv.textContent =
-JSON.stringify(data,null,2);
-
-}
-catch(err){
-
-responseDiv.innerHTML =
-"<span style='color:red'>"+
-err+
-"</span>";
-
+function speak(text) {
+  if (!("speechSynthesis" in window) || !text) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  if (selectedVoice) utterance.voice = selectedVoice;
+  utterance.rate = 1.0;
+  window.speechSynthesis.speak(utterance);
 }
 
+function stopVoice() {
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
 }
 
-load();
+async function ask() {
+  const prompt = document.getElementById("prompt").value.trim();
+  const resDiv = document.getElementById("response");
+  if (!prompt) return;
 
+  resDiv.textContent = "Anna is thinking...";
+
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+    const reply = data.reply || JSON.stringify(data);
+
+    resDiv.textContent = reply;
+    speak(reply);
+  } catch (err) {
+    resDiv.textContent = "Error: " + err;
+  }
+}
 </script>
 
 </body>

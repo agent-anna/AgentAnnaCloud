@@ -34,15 +34,15 @@ button.mic-btn.active{background:#ef4444;color:#fff;}
 
 <div class="container">
   <div class="grid">
-    <div class="panel" onclick="inspectAsset('brain.json', 'Brain Module')">
+    <div class="panel">
       <h2>Brain <span>🔍</span></h2>
       <div id="brain">Loading core...</div>
     </div>
-    <div class="panel" onclick="inspectAsset('tasks.json', 'Tasks Matrix')">
+    <div class="panel">
       <h2>Tasks <span>🔍</span></h2>
       <div id="tasks">Loading tasks...</div>
     </div>
-    <div class="panel" onclick="inspectAsset('memory.json', 'Neural Memory')">
+    <div class="panel">
       <h2>Memory & Links <span>🔍</span></h2>
       <div id="links">Loading links...</div>
     </div>
@@ -50,7 +50,7 @@ button.mic-btn.active{background:#ef4444;color:#fff;}
 
   <div class="console-panel">
     <h2>Agent Console</h2>
-    <textarea id="prompt" placeholder="Type your prompt here or click mic to speak..."></textarea>
+    <textarea id="prompt" placeholder="Type prompt or use mic..."></textarea>
     
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button onclick="ask()">SEND</button>
@@ -58,7 +58,7 @@ button.mic-btn.active{background:#ef4444;color:#fff;}
       <button class="secondary" onclick="toggleVoice()">🔊 VOICE: <span id="voiceState">ON</span></button>
       <button class="danger" onclick="executeStfuProtocol()">🛑 STOP VOICE</button>
     </div>
-    <div id="response">System online. Ready for input.</div>
+    <div id="response">System online. Ready.</div>
   </div>
 </div>
 
@@ -101,59 +101,56 @@ function speakText(text) {
     } catch (e) {}
 }
 
-// TRUE MANUAL TOGGLE MIC
 function toggleMic() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        document.getElementById("response").textContent = "ERROR: Speech Recognition not supported in this browser. Use Chrome.";
+        document.getElementById("response").textContent = "Speech recognition not supported in this browser. Please use Google Chrome.";
         return;
     }
 
     const micBtn = document.getElementById("micBtn");
 
     if (isListening) {
-        // STOP LISTENING MANUALLY
-        if (recognition) {
-            try { recognition.stop(); } catch(e){}
-        }
+        if (recognition) { try { recognition.stop(); } catch(e){} }
         stopMicUI();
         return;
     }
 
-    // START LISTENING
     try {
         recognition = new SpeechRecognition();
         recognition.lang = "en-US";
-        recognition.continuous = true; // Keep listening until clicked again
-        recognition.interimResults = true;
+        recognition.continuous = false;
+        recognition.interimResults = false;
 
         recognition.onstart = () => {
             isListening = true;
-            micBtn.textContent = "⏹️ CLICK TO STOP MIC";
+            micBtn.textContent = "⏹️ LISTENING (CLICK TO STOP)";
             micBtn.classList.add("active");
-            document.getElementById("response").textContent = "🎙️ Microphone LIVE. Speak into your mic, then click STOP MIC when finished.";
+            document.getElementById("response").textContent = "Microphone active. Speak now...";
         };
 
         recognition.onresult = (event) => {
-            let transcript = "";
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                transcript += event.results[i][0].transcript;
-            }
+            const transcript = event.results[0][0].transcript;
             document.getElementById("prompt").value = transcript;
+            document.getElementById("response").textContent = "Heard: " + transcript;
         };
 
         recognition.onerror = (event) => {
-            document.getElementById("response").textContent = "MIC ERROR: " + event.error;
+            document.getElementById("response").textContent = "Mic error: " + event.error;
             stopMicUI();
         };
 
         recognition.onend = () => {
             stopMicUI();
+            const val = document.getElementById("prompt").value.trim();
+            if (val) {
+                ask();
+            }
         };
 
         recognition.start();
     } catch (err) {
-        document.getElementById("response").textContent = "MIC EXCEPTION: " + err.message;
+        document.getElementById("response").textContent = "Mic exception: " + err.message;
         stopMicUI();
     }
 }
@@ -207,7 +204,7 @@ async function ask() {
         promptInput.value = "";
         speakText(reply);
     } catch (err) {
-        resDiv.textContent = "Error connecting to Cloudflare Worker endpoint: " + err;
+        resDiv.textContent = "Error connecting to backend: " + err;
     }
 }
 

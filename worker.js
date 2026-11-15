@@ -59,32 +59,6 @@
       }
     }
 
-    if (url.pathname === "/api/tts") {
-      try {
-        const text = (url.searchParams.get("text") || "Hello Martin.").slice(0, 800);
-        const voice = url.searchParams.get("voice") || "Joanna";
-
-        const ttsUrl = `https://api.streamelements.com/kappa/v2/speech?voice=${encodeURIComponent(voice)}&text=${encodeURIComponent(text)}`;
-        const audioRes = await fetch(ttsUrl, {
-          headers: { "User-Agent": "Mozilla/5.0" }
-        });
-
-        if (!audioRes.ok) {
-          return new Response(JSON.stringify({ error: "TTS error" }), { status: 502, headers: corsHeaders });
-        }
-
-        return new Response(audioRes.body, {
-          headers: {
-            "Content-Type": "audio/mpeg",
-            "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "no-store"
-          }
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
-      }
-    }
-
     if (url.pathname === "/api/memory") {
       try {
         return env.ASSETS.fetch(new Request(new URL("/memory.json", request.url)));

@@ -3,61 +3,48 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Agent Anna Neural Portal</title>
+<title>Agent Anna</title>
 <style>
 body{margin:0;background:#050816;color:#00d9ff;font-family:Segoe UI,Arial,sans-serif;}
 header{padding:20px;border-bottom:1px solid rgba(0,217,255,.3);background:#07142a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
-h1{margin:0;font-size:24px;letter-spacing:1px;}
+h1{margin:0;font-size:24px;}
 .container{padding:20px;max-width:1000px;margin:0 auto;}
 .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));}
-.panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;cursor:pointer;transition:all 0.2s ease;box-shadow:0 4px 20px rgba(0,217,255,0.05);}
-.panel:hover{transform:translateY(-3px);border-color:#00ff88;box-shadow:0 6px 25px rgba(0,255,136,0.15);}
-.panel h2{margin-top:0;font-size:18px;border-bottom:1px solid rgba(0,217,255,0.2);padding-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;cursor:pointer;transition:all 0.2s ease;}
+.panel:hover{border-color:#00ff88;box-shadow:0 0 15px rgba(0,255,136,0.15);}
+.panel h2{margin-top:0;font-size:18px;border-bottom:1px solid rgba(0,217,255,0.2);padding-bottom:8px;}
 .item{margin-bottom:8px;font-size:14px;}
 .console-panel{border:1px solid #00d9ff;border-radius:16px;background:#07142a;padding:20px;margin-top:20px;}
 textarea{width:100%;height:105px;background:#000;color:#00ffff;border:1px solid #00d9ff;border-radius:8px;padding:12px;box-sizing:border-box;font-family:inherit;font-size:15px;outline:none;}
-button{margin-top:10px;padding:10px 18px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;transition:opacity 0.2s;}
+button{margin-top:10px;padding:10px 18px;cursor:pointer;background:#00d9ff;color:#000;border:none;border-radius:8px;font-weight:bold;}
 button:hover{opacity:0.85;}
 button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
-button.mic-btn{background:#10b981;color:#000;}
-button.mic-btn.listening{background:#ef4444;color:#fff;animation:pulse 1s infinite;}
-@keyframes pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}
+button.danger{background:#ef4444;color:#fff;}
 .status{color:#00ff88;font-weight:bold;font-size:13px;}
 #response{margin-top:15px;padding:15px;border-radius:8px;background:#000;min-height:70px;white-space:pre-wrap;color:#e6f9ff;line-height:1.55;font-size:14px;border:1px solid rgba(0,217,255,0.2);}
-
-.visualizer{display:flex;gap:4px;align-items:center;height:35px;background:#000;border:1px solid rgba(0,217,255,0.3);border-radius:8px;padding:0 12px;margin-top:15px;overflow:hidden;}
-.bar{flex:1;background:#00d9ff;height:4px;border-radius:2px;transition:height 0.1s ease;box-shadow:0 0 8px #00d9ff;}
-.visualizer.active .bar{animation:wave 0.8s infinite ease-in-out alternate;}
-@keyframes wave{0%{height:4px;}100%{height:28px;background:#00ff88;box-shadow:0 0 12px #00ff88;}}
-
-#modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,8,22,0.85);backdrop-filter:blur(5px);justify-content:center;align-items:center;z-index:1000;}
-.modal-content{background:#07142a;border:1px solid #00ff88;border-radius:16px;padding:30px;width:90%;max-width:600px;box-shadow:0 0 30px rgba(0,255,136,0.2);position:relative;}
-.modal-content h3{margin-top:0;color:#00ff88;}
-pre{background:#000;padding:15px;border-radius:8px;color:#00ffff;overflow-x:auto;font-size:13px;border:1px solid rgba(0,217,255,0.3);}
-.close-btn{position:absolute;top:15px;right:20px;background:none;border:none;color:#00d9ff;font-size:20px;cursor:pointer;}
+#notification{position:fixed;bottom:20px;right:20px;background:#07142a;border:1px solid #00ff88;color:#00ff88;padding:12px 20px;border-radius:8px;display:none;z-index:2000;font-size:13px;box-shadow:0 0 15px rgba(0,255,136,0.2);}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>Agent Anna Neural Portal</h1>
+  <h1>Agent Anna</h1>
   <div style="display:flex;gap:15px;align-items:center;">
-    <span id="voiceStatus" style="font-size:12px;color:#00ff88;">Voice: Ready</span>
-    <div class="status">ONLINE</div>
+    <span id="hudState" class="status">READY</span>
   </div>
 </header>
 
 <div class="container">
   <div class="grid">
-    <div class="panel" onclick="inspectAsset('brain.json', 'Brain Module (brain.json)')">
+    <div class="panel" onclick="inspectAsset('brain.json', 'Brain Module')">
       <h2>Brain <span>🔍</span></h2>
       <div id="brain">Loading core...</div>
     </div>
-    <div class="panel" onclick="inspectAsset('tasks.json', 'Active Tasks Matrix (tasks.json)')">
+    <div class="panel" onclick="inspectAsset('tasks.json', 'Tasks Matrix')">
       <h2>Tasks <span>🔍</span></h2>
       <div id="tasks">Loading tasks...</div>
     </div>
-    <div class="panel" onclick="inspectAsset('memory.json', 'Neural Memory (memory.json)')">
+    <div class="panel" onclick="inspectAsset('memory.json', 'Neural Memory')">
       <h2>Memory & Links <span>🔍</span></h2>
       <div id="links">Loading links...</div>
     </div>
@@ -66,270 +53,165 @@ pre{background:#000;padding:15px;border-radius:8px;color:#00ffff;overflow-x:auto
   <div class="console-panel">
     <h2>Agent Console</h2>
     <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)"></textarea>
-    
-    <div id="viz" class="visualizer">
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-      <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-    </div>
-
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button onclick="ask()">SEND</button>
-      <button id="voiceToggleBtn" class="secondary" onclick="toggleVoice()">🔊 VOICE TOGGLE</button>
-      <button id="micBtn" class="mic-btn" onclick="toggleMic()">🎙️ TAP TO SPEAK</button>
-      <button class="secondary" onclick="testAudio()" style="background:#1e1b4b;border-color:#818cf8;color:#818cf8;">🔊 TEST SPEAKER</button>
+      <button class="secondary" onclick="toggleVoice()">🔊 TOGGLE VOICE (<span id="voiceState">ON</span>)</button>
+      <button class="danger" onclick="executeStfuProtocol()">🛑 STFU / CANCEL</button>
     </div>
     <div id="response">Ready.</div>
   </div>
 </div>
 
-<div id="modal" onclick="if(event.target === this) closeModal()">
-  <div class="modal-content">
-    <button class="close-btn" onclick="closeModal()">&times;</button>
-    <h3 id="modalTitle">Asset Inspector</h3>
-    <pre id="modalBody">Loading JSON...</pre>
-  </div>
-</div>
+<div id="notification"></div>
 
 <script>
-let selectedVoice = null;
-let lastReply = "";
-let isSpeaking = false;
-let recognition = null;
-let isListening = false;
-window.currentUtterance = null;
+let cachedVoices = [];
+let isVoiceEnabled = true;
 
-function initVoice() {
-  if (!("speechSynthesis" in window)) return;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return;
-
-  const isMale = n => /(david|mark|george|guy|ryan|richard|james|daniel|male)/i.test(n);
-  const englishVoices = voices.filter(v => v.lang.startsWith("en") && !isMale(v.name));
-
-  selectedVoice =
-    englishVoices.find(v => v.name.includes("Google US English")) ||
-    englishVoices.find(v => v.name.includes("Google UK English Female")) ||
-    englishVoices.find(v => /(aria|jenny|ava|emma|samantha|zira|hazel)/i.test(v.name)) ||
-    englishVoices[0] ||
-    voices[0];
-
-  if (selectedVoice) {
-    document.getElementById("voiceStatus").textContent = "Voice: " + selectedVoice.name;
-  }
+function loadVoices() {
+    if (!('speechSynthesis' in window)) return;
+    try { cachedVoices = window.speechSynthesis.getVoices(); } catch (e) {}
 }
 
-if ("speechSynthesis" in window) {
-  window.speechSynthesis.onvoiceschanged = initVoice;
-  initVoice();
+if ('speechSynthesis' in window) {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
 }
 
-function setVisualizerActive(active) {
-  const viz = document.getElementById("viz");
-  if (active) viz.classList.add("active");
-  else viz.classList.remove("active");
+function updateHUDState(state) {
+    const hud = document.getElementById("hudState");
+    if (hud) hud.textContent = state;
 }
 
-function speak(text) {
-  if (!("speechSynthesis" in window) || !text) return;
-  window.speechSynthesis.cancel();
-  initVoice();
-
-  const clean = text
-    .replace(/```[\s\S]*?```/g, "Code provided on screen.")
-    .replace(/[#*_`>-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  window.currentUtterance = new SpeechSynthesisUtterance(clean);
-  if (selectedVoice) window.currentUtterance.voice = selectedVoice;
-  window.currentUtterance.rate = 1.02;
-  window.currentUtterance.pitch = 1.04;
-
-  window.currentUtterance.onstart = () => { isSpeaking = true; updateVoiceButton(); setVisualizerActive(true); };
-  window.currentUtterance.onend = () => { isSpeaking = false; updateVoiceButton(); setVisualizerActive(false); };
-  window.currentUtterance.onerror = () => { isSpeaking = false; updateVoiceButton(); setVisualizerActive(false); };
-
-  window.speechSynthesis.speak(window.currentUtterance);
+function showCyberNotification(msg) {
+    const n = document.getElementById("notification");
+    if (!n) return;
+    n.textContent = msg;
+    n.style.display = "block";
+    setTimeout(() => { n.style.display = "none"; }, 3500);
 }
 
-function testAudio() {
-  speak("Audio check online. Auto silence detection is active.");
+function speakText(text) {
+    if (!isVoiceEnabled || !('speechSynthesis' in window)) return;
+    try {
+        window.speechSynthesis.cancel();
+        let cleanText = text
+            .replace(/```[\s\S]*?```/g, ' [Code block omitted] ')
+            .replace(/`[^`]*`/g, ' snippet ')
+            .replace(/<[^>]*>/g, '')
+            .replace(/[*_#`~=]/g, ' ')
+            .trim();
+
+        if (!cleanText) return;
+
+        document.body.classList.remove('is-thinking');
+        document.body.classList.add('is-speaking');
+        updateHUDState("SPEAKING");
+
+        let voices = window.speechSynthesis.getVoices();
+        if (!voices || voices.length === 0) voices = cachedVoices;
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        const voice = voices.find(v => 
+            v.name.includes("Google UK English Female") || 
+            v.name.includes("Victoria") || 
+            v.name.includes("Samantha") || 
+            v.name.includes("Zira")
+        ) || voices.find(v => v.lang.includes('en-GB') || v.lang.includes('en-US')) || voices[0];
+
+        if (voice) utterance.voice = voice;
+        utterance.pitch = 1.02;
+        utterance.rate = 0.98;
+
+        utterance.onend = () => {
+            document.body.classList.remove('is-speaking');
+            updateHUDState("READY");
+        };
+        utterance.onerror = () => {
+            document.body.classList.remove('is-speaking');
+            updateHUDState("READY");
+        };
+
+        window.speechSynthesis.speak(utterance);
+    } catch (e) {
+        document.body.classList.remove('is-speaking');
+        updateHUDState("READY");
+    }
 }
 
-function stopVoice() {
-  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-  isSpeaking = false;
-  updateVoiceButton();
-  setVisualizerActive(false);
+function executeStfuProtocol() {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    document.body.classList.remove('is-speaking', 'is-thinking');
+    updateHUDState("READY");
+    showCyberNotification("🛑 STFU COMMAND EXECUTED: Audio stream terminated.");
 }
 
 function toggleVoice() {
-  if (isSpeaking) {
-    stopVoice();
-  } else if (lastReply) {
-    speak(lastReply);
-  } else {
-    speak("Voice toggle ready. Send a message to hear my reply.");
-  }
-}
-
-function updateVoiceButton() {
-  const btn = document.getElementById("voiceToggleBtn");
-  if (isSpeaking) {
-    btn.textContent = "🔇 STOP VOICE";
-    btn.style.borderColor = "#ef4444";
-    btn.style.color = "#ef4444";
-  } else {
-    btn.textContent = "🔊 VOICE TOGGLE";
-    btn.style.borderColor = "#00d9ff";
-    btn.style.color = "#00d9ff";
-  }
-}
-
-// True auto-stop on silence speech recognition workflow
-function toggleMic() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    alert("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
-    return;
-  }
-
-  if (isListening) {
-    if (recognition) recognition.stop();
-    return;
-  }
-
-  try {
-    recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.continuous = false; // Automatically stops on silence
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      isListening = true;
-      const micBtn = document.getElementById("micBtn");
-      micBtn.textContent = "🔴 LISTENING (SPEAK NOW)...";
-      micBtn.classList.add("listening");
-      setVisualizerActive(true);
-      document.getElementById("response").textContent = "Listening... Speak now. I will auto-send when you pause.";
-    };
-
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        transcript += event.results[i][0].transcript;
-      }
-      document.getElementById("prompt").value = transcript;
-    };
-
-    recognition.onerror = (event) => {
-      console.warn("Speech recognition error:", event.error);
-      stopMicUI();
-    };
-
-    recognition.onend = () => {
-      stopMicUI();
-      const val = document.getElementById("prompt").value.trim();
-      if (val && val.length > 0) {
-        ask(); // Auto-submits immediately upon silence stop
-      }
-    };
-
-    recognition.start();
-  } catch (err) {
-    console.warn("Mic start exception:", err);
-    stopMicUI();
-  }
-}
-
-function stopMicUI() {
-  isListening = false;
-  const micBtn = document.getElementById("micBtn");
-  micBtn.textContent = "🎙️ TAP TO SPEAK";
-  micBtn.classList.remove("listening");
-  setVisualizerActive(false);
-}
-
-async function inspectAsset(filename, title) {
-  document.getElementById("modalTitle").textContent = title;
-  document.getElementById("modalBody").textContent = "Loading raw node data...";
-  document.getElementById("modal").style.display = "flex";
-
-  try {
-    const res = await fetch(filename);
-    const data = await res.json();
-    document.getElementById("modalBody").textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    document.getElementById("modalBody").textContent = "Error loading " + filename + ": " + err;
-  }
-}
-
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
-async function loadPortal() {
-  try {
-    const [brain, tasks, links] = await Promise.all([
-      fetch("brain.json").then(r => r.json()),
-      fetch("tasks.json").then(r => r.json()),
-      fetch("links.json").then(r => r.json())
-    ]);
-
-    document.getElementById("brain").innerHTML =
-      `<div class="item"><b>Agent:</b> ${brain.agent}</div>` +
-      `<div class="item"><b>Owner:</b> ${brain.owner}</div>` +
-      `<div class="item"><b>Status:</b> ${brain.status}</div>`;
-
-    document.getElementById("tasks").innerHTML =
-      tasks.map(t => `<div class="item">• ${t.task} (<b style="color:#00ff88">${t.status}</b>)</div>`).join("");
-
-    document.getElementById("links").innerHTML =
-      links.map(l => `<div class="item"><a href="${l.url}" target="_blank" style="color:#00ffff;text-decoration:underline;">${l.name}</a></div>`).join("") +
-      `<div class="item" style="margin-top:6px;color:#a0aec0;font-style:italic;">Click any panel above to inspect raw JSON nodes.</div>`;
-
-  } catch (err) {
-    console.warn("Portal data load fallback:", err);
-  }
+    isVoiceEnabled = !isVoiceEnabled;
+    document.getElementById("voiceState").textContent = isVoiceEnabled ? "ON" : "OFF";
+    if (!isVoiceEnabled) executeStfuProtocol();
+    showCyberNotification(`Voice engine turned ${isVoiceEnabled ? "ON" : "OFF"}`);
 }
 
 document.getElementById("prompt").addEventListener("keydown", function(event) {
-  if (event.key === "Enter" && !event.shiftKey) {
-    event.preventDefault();
-    ask();
-  }
+    if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        ask();
+    }
 });
 
 async function ask() {
-  const promptInput = document.getElementById("prompt");
-  const prompt = promptInput.value.trim();
-  const resDiv = document.getElementById("response");
-  if (!prompt) return;
+    const promptInput = document.getElementById("prompt");
+    const prompt = promptInput.value.trim();
+    const resDiv = document.getElementById("response");
+    if (!prompt) return;
 
-  stopVoice();
-  resDiv.textContent = "Anna is thinking...";
-  setVisualizerActive(true);
+    executeStfuProtocol();
+    resDiv.textContent = "Anna is thinking...";
+    document.body.classList.add('is-thinking');
+    updateHUDState("THINKING");
 
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt })
-    });
+    try {
+        const res = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prompt })
+        });
 
-    const data = await res.json();
-    let reply = data.reply || "No reply.";
+        const data = await res.json();
+        let reply = data.reply || "No reply.";
 
-    lastReply = reply;
-    resDiv.textContent = reply;
-    promptInput.value = "";
-    speak(reply);
-  } catch (err) {
-    resDiv.textContent = "Error: " + err;
-    setVisualizerActive(false);
-  }
+        resDiv.textContent = reply;
+        promptInput.value = "";
+        speakText(reply);
+    } catch (err) {
+        resDiv.textContent = "Error: " + err;
+        document.body.classList.remove('is-thinking');
+        updateHUDState("READY");
+    }
+}
+
+async function loadPortal() {
+    try {
+        const [brain, tasks, links] = await Promise.all([
+            fetch("brain.json").then(r => r.json()),
+            fetch("tasks.json").then(r => r.json()),
+            fetch("links.json").then(r => r.json())
+        ]);
+
+        document.getElementById("brain").innerHTML =
+            `<div class="item"><b>Agent:</b> ${brain.agent}</div>` +
+            `<div class="item"><b>Owner:</b> ${brain.owner}</div>` +
+            `<div class="item"><b>Status:</b> ${brain.status}</div>`;
+
+        document.getElementById("tasks").innerHTML =
+            tasks.map(t => `<div class="item">• ${t.task} (<b style="color:#00ff88">${t.status}</b>)</div>`).join("");
+
+        document.getElementById("links").innerHTML =
+            links.map(l => `<div class="item"><a href="${l.url}" target="_blank" style="color:#00ffff;text-decoration:underline;">${l.name}</a></div>`).join("");
+    } catch (err) {
+        console.warn("Portal data load fallback");
+    }
 }
 
 loadPortal();

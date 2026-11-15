@@ -30,7 +30,7 @@ button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 <div class="container">
   <div class="panel">
     <h2>Agent Console</h2>
-    <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)" onkeydown="handleKeyDown(event)"></textarea>
+    <textarea id="prompt" placeholder="Ask Anna anything... (Press Enter to send, Shift+Enter for new line)"></textarea>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button onclick="ask()">SEND</button>
       <button class="secondary" onclick="replayVoice()">REPLAY VOICE</button>
@@ -43,6 +43,7 @@ button.secondary{background:#0b2244;color:#00d9ff;border:1px solid #00d9ff;}
 <script>
 let selectedVoice = null;
 let lastReply = "";
+let audioUnlocked = false;
 
 function initVoice() {
   if (!("speechSynthesis" in window)) return;
@@ -69,13 +70,23 @@ if ("speechSynthesis" in window) {
   initVoice();
 }
 
+function unlockAudio() {
+  if (audioUnlocked || !("speechSynthesis" in window)) return;
+  audioUnlocked = true;
+  // Silent tap to unlock browser audio policy
+  const dummy = new SpeechSynthesisUtterance("");
+  dummy.volume = 0;
+  window.speechSynthesis.speak(dummy);
+}
+
 function speak(text) {
   if (!("speechSynthesis" in window) || !text) return;
   window.speechSynthesis.cancel();
   initVoice();
+  unlockAudio();
 
   const clean = text
-    .replace(/```[\s\S]*?```/g, "Code snippet provided on screen.")
+    .replace(/```[\s\S]*?```/g, "Code provided on screen.")
     .replace(/[#*_`>-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -95,14 +106,16 @@ function replayVoice() {
   if (lastReply) speak(lastReply);
 }
 
-function handleKeyDown(event) {
+// Bulletproof Enter key listener bound directly via JS
+document.getElementById("prompt").addEventListener("keydown", function(event) {
   if (event.key === "Enter" && !event.shiftKey) {
     event.preventDefault();
     ask();
   }
-}
+});
 
 async function ask() {
+  unlockAudio();
   const promptInput = document.getElementById("prompt");
   const prompt = promptInput.value.trim();
   const resDiv = document.getElementById("response");

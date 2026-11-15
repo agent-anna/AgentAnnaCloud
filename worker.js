@@ -12,6 +12,10 @@
       return new Response(null, { headers: corsHeaders });
     }
 
+    if (url.pathname === "/favicon.ico") {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
     if (url.pathname === "/api/chat") {
       if (request.method !== "POST") {
         return new Response(JSON.stringify({ error: "POST required" }), { status: 405, headers: corsHeaders });
